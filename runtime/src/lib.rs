@@ -51,6 +51,8 @@ pub use pallet_kitties;
 
 pub use pallet_tightly_coupling;
 
+pub use pallet_loosely_coupling;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -280,7 +282,13 @@ impl pallet_kitties::Config for Runtime {
 impl pallet_tightly_coupling::Config for Runtime {
 	type Event = Event;
 }
-	
+
+/// Configure the pallet-kitties in pallets/loosely-coupling
+impl pallet_loosely_coupling::Config for Runtime {
+	type Event = Event;
+	type Increase = TemplateModule;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -302,6 +310,8 @@ construct_runtime!(
 		KittiesModule: pallet_kitties,
 		// Include the custom logic from the pallet-tightly-coupling in the run time.
 		Tightly: pallet_tightly_coupling,
+		// Include the custom logic from the pallet-loosely-coupling in the run time.
+		Loosely: pallet_loosely_coupling,
 	}
 );
 
