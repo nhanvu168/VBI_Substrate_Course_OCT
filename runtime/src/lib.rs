@@ -276,6 +276,7 @@ impl pallet_template::Config for Runtime {
 /// Configure the pallet-kitties in pallets/kitties.
 impl pallet_kitties::Config for Runtime {
 	type Event = Event;
+	type Currency = Balances;
 }
 
 /// Configure the pallet-kitties in pallets/tightly-coupling

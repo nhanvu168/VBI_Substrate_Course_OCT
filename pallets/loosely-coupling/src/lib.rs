@@ -52,7 +52,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
-		IncreaseSuccess(u32),
+		IncreaseSuccess(u32)
 	}
 
 	// Errors inform users that something went wrong.
