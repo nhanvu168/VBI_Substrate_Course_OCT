@@ -12,6 +12,7 @@ use pallet_grandpa::{
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use frame_system::EnsureRoot;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify},
@@ -38,6 +39,7 @@ pub use frame_support::{
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
+
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -286,6 +288,16 @@ impl pallet_kitties::Config for Runtime {
 	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
+impl pallet_nicks::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type ReservationFee = ConstU128<100>;
+	type MaxLength = ConstU32<15>;
+	type MinLength = ConstU32<5>;
+	type ForceOrigin = EnsureRoot<AccountId>;
+	type Slashed = ();
+}
+
 /// Configure the pallet-kitties in pallets/tightly-coupling
 impl pallet_tightly_coupling::Config for Runtime {
 	type Event = Event;
@@ -321,6 +333,8 @@ construct_runtime!(
 		Tightly: pallet_tightly_coupling,
 		// Include the custom logic from the pallet-loosely-coupling in the run time.
 		Loosely: pallet_loosely_coupling,
+		// Include the custom logic from the pallet-nicks in the runtime.
+		Nicks: pallet_nicks,
 	}
 );
 
