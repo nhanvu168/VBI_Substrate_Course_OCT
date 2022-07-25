@@ -55,6 +55,9 @@ pub use pallet_tightly_coupling;
 
 pub use pallet_loosely_coupling;
 
+/// Import the demo pallet.
+pub use pallet_demo;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -310,6 +313,10 @@ impl pallet_loosely_coupling::Config for Runtime {
 
 }
 
+impl pallet_demo::Config for Runtime {
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -335,6 +342,8 @@ construct_runtime!(
 		Loosely: pallet_loosely_coupling,
 		// Include the custom logic from the pallet-nicks in the runtime.
 		Nicks: pallet_nicks,
+		// Include the custom logic from the pallet-demo in the runtime.
+		Demo: pallet_demo,
 	}
 );
 
