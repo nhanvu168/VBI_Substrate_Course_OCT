@@ -21,13 +21,14 @@ pub type Id = u32;
 use frame_support::traits::Currency;
 use frame_support::traits::Randomness;
 use frame_support::traits::Time;
+use frame_support::dispatch::fmt;
 
 pub type CreatedDate<T> = <<T as Config>::CreatedDate as frame_support::traits::Time>::Moment;
 #[frame_support::pallet]
 pub mod pallet {
 	pub use super::*;
 
-	#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
+	#[derive(Encode, Decode, Default, TypeInfo)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Kitty<T: Config> {
 		dna: T::Hash,
@@ -35,6 +36,18 @@ pub mod pallet {
 		pub gender: Gender,
 		pub owner: T::AccountId,
 		created_date: CreatedDate<T>,
+	}
+
+	impl <T: Config> fmt::Debug for Kitty<T> {
+		fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+			f.debug_struct("Kitty")
+			 .field("dna", &self.dna)
+			 .field("price", &self.price)
+			 .field("owner", &self.owner)
+			 .field("gender", &self.gender)
+			 .field("created_date", &self.created_date)
+			 .finish()
+		}
 	}
 
 	#[derive(TypeInfo, Encode, Decode, Debug)]
@@ -48,8 +61,6 @@ pub mod pallet {
 			Self::Male
 		}
 	}
-
-
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
