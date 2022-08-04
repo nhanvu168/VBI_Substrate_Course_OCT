@@ -279,7 +279,7 @@ impl pallet_template::Config for Runtime {
 }
 
 parameter_types! {
-	pub const KittyLimit: u32 = 2;
+	pub const KittyLimit: u32 = 10;
 }
 
 /// Configure the pallet-kitties in pallets/kitties.

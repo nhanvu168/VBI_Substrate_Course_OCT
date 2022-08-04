@@ -1,10 +1,10 @@
 use node_template_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig,
-	SystemConfig, WASM_BINARY,
+	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, KittiesConfig, Signature,
+	SudoConfig, SystemConfig, WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public, H256};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -60,6 +60,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 				],
 				true,
+				generate_kitties(),
 			)
 		},
 		// Bootnodes
@@ -108,6 +109,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
 				true,
+				generate_kitties(),
 			)
 		},
 		// Bootnodes
@@ -131,6 +133,7 @@ fn testnet_genesis(
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
+	initial_kitties: Vec<(AccountId, H256, u32)>,
 ) -> GenesisConfig {
 	GenesisConfig {
 		system: SystemConfig {
@@ -152,5 +155,21 @@ fn testnet_genesis(
 			key: Some(root_key),
 		},
 		transaction_payment: Default::default(),
+		kitties: KittiesConfig { kitties: initial_kitties },
 	}
+}
+
+fn generate_kitties() -> Vec<(AccountId, H256, u32)> {
+	let kitty_quantity = 10u32;
+	let mut kitties: Vec<(AccountId, H256, u32)> = Vec::new();
+	let owner = get_account_id_from_seed::<sr25519::Public>("Alice");
+
+	for index in 0..=kitty_quantity {
+		let dna = H256::random();
+		let price = index * 10;
+
+		kitties.push((owner.clone(), dna, price));
+	}
+
+	kitties
 }

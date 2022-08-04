@@ -24,6 +24,7 @@ use frame_support::traits::Time;
 use frame_support::dispatch::fmt;
 
 pub type CreatedDate<T> = <<T as Config>::CreatedDate as frame_support::traits::Time>::Moment;
+use log::info;
 #[frame_support::pallet]
 pub mod pallet {
 	pub use super::*;
@@ -34,7 +35,7 @@ pub mod pallet {
 		dna: T::Hash,
 		price: u32,
 		pub gender: Gender,
-		pub owner: T::AccountId,
+		owner: T::AccountId,
 		created_date: CreatedDate<T>,
 	}
 
@@ -60,6 +61,14 @@ pub mod pallet {
 		fn default() -> Self {
 			Self::Male
 		}
+	}
+
+	#[derive(Default)]
+
+	pub enum StorageUpdateType {
+		#[default]
+		CreateKitty,
+		ChangeOwner,
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -107,6 +116,46 @@ pub mod pallet {
 		BoundedVec<T::Hash, T::KittyLimit>,
 		OptionQuery,
 	>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig<T: Config> {
+		pub kitties: Vec<(T::AccountId,T::Hash,u32)>,
+	}
+
+	#[cfg(feature = "std")]
+	impl<T: Config> Default for GenesisConfig<T> {
+		fn default() -> Self {
+			Self { kitties: Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+		fn build(&self) {
+			info!("=======================Kitties: {:?}", self.kitties);
+			for (index, (owner, dna, price)) in self.kitties.iter().enumerate() {
+				let gender = Pallet::<T>::gen_gender().unwrap();
+
+				let kitty = Kitty::<T> {
+					owner: owner.clone(),
+					dna: dna.clone(),
+					gender,
+					price: *price,
+					created_date: T::CreatedDate::now(),
+				};
+
+				KittyQuantity::<T>::put(index as u32);
+				Kitties::<T>::insert(&dna, kitty);
+				Pallet::<T>::update_kitties_of_owner(
+					owner.clone(),
+					owner.clone(),
+					dna.clone(),
+					StorageUpdateType::CreateKitty,
+				);
+			}
+		}
+	}
+
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/v3/runtime/events-and-errors
 	#[pallet::event]
@@ -128,6 +177,8 @@ pub mod pallet {
 		ExceedLimit,
 		MoveValueNotExist,
 		MoveValueAlreadyExist,
+		KittyAlreadyExist,
+		KittyLimitReached,
 	}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -176,9 +227,12 @@ pub mod pallet {
 			}
 
 			// Emit an event.
-			Self::deposit_event(Event::KittyCreated(dna.clone(), owner));
-
-			// Return a successful DispatchResultWithPostInfo
+			Self::update_kitties_of_owner(
+				owner.clone(),
+				owner.clone(),
+				dna.clone(),
+				StorageUpdateType::CreateKitty,
+			)?;
 			Ok(())
 		}
 
@@ -260,5 +314,47 @@ impl<T: Config> Pallet<T> {
 
 		Self::deposit_event(Event::<T>::DnaGenerated(dna_random_seed));
 		Ok(dna)
+	}
+
+	fn update_kitties_of_owner(
+		who: T::AccountId,
+		owner: T::AccountId,
+		kitty_dna: T::Hash,
+		update_type: StorageUpdateType,
+	) -> Result<(), Error<T>> {
+		let event = match update_type {
+			StorageUpdateType::CreateKitty => {
+				Event::<T>::KittyCreated(kitty_dna.clone(), who.clone())
+			},
+			StorageUpdateType::ChangeOwner => {
+				Event::<T>::KittyChangeOwner(kitty_dna.clone(), who.clone(), owner.clone())
+			},
+		};
+		match <KittyOwner<T>>::try_get(&owner) {
+			Ok(mut _kitties) => match _kitties.binary_search(&kitty_dna) {
+				Ok(_) => Err(<Error<T>>::KittyAlreadyExist.into()),
+				Err(_) => {
+					_kitties
+						.try_push(kitty_dna.clone())
+						.map_err(|_| <Error<T>>::KittyLimitReached)?;
+
+					<KittyOwner<T>>::insert(&owner, _kitties);
+
+					Self::deposit_event(event);
+					Ok(().into())
+				},
+			},
+			Err(_) => {
+				let mut _kitty_dnas = Vec::new();
+				_kitty_dnas.push(kitty_dna.clone());
+
+				let bounded_dnas =
+					<BoundedVec<T::Hash, T::KittyLimit>>::truncate_from(_kitty_dnas);
+				<KittyOwner<T>>::insert(&owner, bounded_dnas.clone());
+
+				Self::deposit_event(event);
+				Ok(().into())
+			},
+		}
 	}
 }
